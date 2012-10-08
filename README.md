@@ -1,4 +1,4 @@
-A collection of bash scripts for working with secure timestamps.
+A collection of bash scripts for working with [secure timestamps](http://en.wikipedia.org/wiki/Trusted_timestamping).
 
 ## tsr
 
