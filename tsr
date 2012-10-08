@@ -1,0 +1,83 @@
+#!/bin/bash
+
+OPEN_SSL="/usr/local/Cellar/openssl/1.0.1c/bin/openssl"
+
+# Test a return value. On error, print error message and exit.
+function test_ret {
+    RET=$1
+    ERR_MSG=$2
+    if [ $RET -ne 0 ]; then
+        echo $2 "Exiting."
+        exit $RET
+    fi
+    return $RET
+}
+
+function usage {
+    cat << EOF
+Usage: $0 [-q QUERY_FILE] [-r REPLY_FILE] -f FILE -s SERVER
+
+Options:
+    -q    The timestamp request file.
+    -r    The timestamp reply file.
+    -f    The file to be timestamped.
+    -s    The timestamp server.
+EOF
+
+}
+
+if [ $# -lt 2 ]; then
+    echo "Error. Not enough arguments."
+    usage
+    exit 1
+fi
+
+QUERY_FILE=""
+REPLY_FILE=""
+SERVER=""
+FILE=""
+
+while getopts :q:r:f:s: OPT; do
+    case "$OPT" in
+        q)
+            QUERY_FILE="$OPTARG"
+            ;;
+        r)
+            REPLY_FILE="$OPTARG"
+            ;;
+        f)
+            FILE="$OPTARG"
+            ;;
+        s)
+            SERVER="$OPTARG"
+            ;;
+        \?)
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+if [ "$SERVER" == "" ]; then
+    echo "Error: No server specified."
+    exit 1
+fi
+
+if [ "$FILE" == "" ]; then
+    echo "Error: No file specified."
+    exit 1
+fi
+
+if [ "$QUERY_FILE" == "" ]; then
+    QUERY_FILE="$(basename ${FILE%.*}).tsq"
+fi
+if [ "$REPLY_FILE" == "" ]; then
+    REPLY_FILE="$(basename ${FILE%.*}).tsr"
+fi
+
+$OPEN_SSL ts -query -data "$FILE" -cert -out "$QUERY_FILE"
+test_ret $? "OpenSSL failed."
+
+curl -s -S -H 'Content-Type: application/timestamp-query' \
+    --data-binary @"$QUERY_FILE" "$SERVER" -o "$REPLY_FILE"
+test_ret $? "Error sending request to: $SERVER"

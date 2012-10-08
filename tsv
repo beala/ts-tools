@@ -1,0 +1,67 @@
+#!/bin/bash
+
+OPEN_SSL="/usr/local/Cellar/openssl/1.0.1c/bin/openssl"
+
+# Test a return value. On error, print error message and exit.
+function test_ret {
+    RET=$1
+    ERR_MSG=$2
+    if [ $RET -ne 0 ]; then
+        echo $2 "Exiting."
+        exit $RET
+    fi
+    return $RET
+}
+
+function usage {
+    cat << EOF
+Usage: $0 [-r REPLY_FILE] -f FILE -s CA_CERT
+
+Options:
+    -r    The timestamp reply file.
+    -f    The timestamped file.
+    -s    The pem or crt of the timestamp CA.
+EOF
+
+}
+
+if [ $# -lt 3 ]; then
+    echo "Error. Not enough arguments."
+    usage
+    exit 1
+fi
+
+QUERY_FILE=""
+REPLY_FILE=""
+CA=""
+FILE=""
+
+while getopts :q:r:f:s: OPT; do
+    case "$OPT" in
+        r)
+            REPLY_FILE="$OPTARG"
+            ;;
+        f)
+            FILE="$OPTARG"
+            ;;
+        s)
+            CA="$OPTARG"
+            ;;
+        \?)
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+if [ "$CA" == "" ]; then
+    echo "Error: No certificate specified."
+    exit 1
+fi
+
+if [ "$FILE" == "" ]; then
+    echo "Error: No file specified."
+    exit 1
+fi
+
+$OPEN_SSL ts -verify -data "$FILE" -in "$REPLY_FILE" -CAfile "$CA"
