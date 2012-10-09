@@ -69,15 +69,15 @@ if [ "$FILE" == "" ]; then
 fi
 
 if [ "$QUERY_FILE" == "" ]; then
-    QUERY_FILE="$(basename ${FILE%.*}).tsq"
+    QUERY_FILE="$(basename "$FILE").tsq"
 fi
 if [ "$REPLY_FILE" == "" ]; then
-    REPLY_FILE="$(basename ${FILE%.*}).tsr"
+    REPLY_FILE="$(basename "$FILE").tsr"
 fi
 
 $OPEN_SSL ts -query -data "$FILE" -cert -out "$QUERY_FILE"
 test_ret $? "OpenSSL failed."
 
-curl -s -S -H 'Content-Type: application/timestamp-query' \
+curl -s -S -f -H 'Content-Type: application/timestamp-query' \
     --data-binary @"$QUERY_FILE" "$SERVER" -o "$REPLY_FILE"
 test_ret $? "Error sending request to: $SERVER"
